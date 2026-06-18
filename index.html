@@ -167,6 +167,18 @@
             align-items: center;
             padding-top: 80px;
             position: relative;
+            background: linear-gradient(135deg, #0B0C10 0%, #1a0b2e 100%);
+            overflow: hidden;
+        }
+
+        #hero-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
         }
 
         #home::before {
@@ -580,7 +592,8 @@
 
     <!-- Hero Section -->
     <section id="home">
-        <div class="container">
+        <canvas id="hero-canvas"></canvas>
+        <div class="container position-relative z-1">
             <div class="row align-items-center flex-column-reverse flex-lg-row">
                 <div class="col-lg-7 fade-in mt-5 mt-lg-0">
                     <h1 class="hero-title">Hi, I'm <span class="text-accent">Mohamed Ali</span></h1>
@@ -952,6 +965,99 @@
             document.querySelectorAll('.fade-in').forEach(element => {
                 observer.observe(element);
             });
+
+            // --- Hero Section Fade on Scroll ---
+            const heroSection = document.getElementById('home');
+            const heroContent = heroSection.querySelector('.container');
+            const canvas = document.getElementById('hero-canvas');
+            
+            window.addEventListener('scroll', () => {
+                const scrollY = window.scrollY;
+                const heroHeight = heroSection.offsetHeight;
+                
+                // Fade out completely by the time scroll reaches 80% of hero height
+                const fadePoint = heroHeight * 0.8;
+                let opacity = 1 - (scrollY / fadePoint);
+                
+                if (opacity < 0) opacity = 0;
+                if (opacity > 1) opacity = 1;
+                
+                if (heroContent) heroContent.style.opacity = opacity;
+                if (canvas) canvas.style.opacity = opacity;
+            });
+
+            // --- Neural Network / Constellation Canvas Effect ---
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                let width = canvas.width = window.innerWidth;
+                let height = canvas.height = heroSection.offsetHeight;
+                
+                let particles = [];
+                const particleCount = Math.floor((width * height) / 15000); // Responsive particle count
+                
+                window.addEventListener('resize', () => {
+                    width = canvas.width = window.innerWidth;
+                    height = canvas.height = heroSection.offsetHeight;
+                });
+
+                class Particle {
+                    constructor() {
+                        this.x = Math.random() * width;
+                        this.y = Math.random() * height;
+                        this.vx = (Math.random() - 0.5) * 0.5;
+                        this.vy = (Math.random() - 0.5) * 0.5;
+                        this.radius = Math.random() * 2 + 1;
+                    }
+                    
+                    update() {
+                        this.x += this.vx;
+                        this.y += this.vy;
+                        
+                        // Bounce off edges
+                        if (this.x < 0 || this.x > width) this.vx = -this.vx;
+                        if (this.y < 0 || this.y > height) this.vy = -this.vy;
+                    }
+                    
+                    draw() {
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.fill();
+                    }
+                }
+
+                for (let i = 0; i < particleCount; i++) {
+                    particles.push(new Particle());
+                }
+
+                function animate() {
+                    ctx.clearRect(0, 0, width, height);
+                    
+                    for (let i = 0; i < particles.length; i++) {
+                        particles[i].update();
+                        particles[i].draw();
+                        
+                        // Draw connections
+                        for (let j = i + 1; j < particles.length; j++) {
+                            const dx = particles[i].x - particles[j].x;
+                            const dy = particles[i].y - particles[j].y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            
+                            if (dist < 120) {
+                                ctx.beginPath();
+                                ctx.moveTo(particles[i].x, particles[i].y);
+                                ctx.lineTo(particles[j].x, particles[j].y);
+                                ctx.strokeStyle = `rgba(168, 107, 255, ${1 - dist/120})`; // Glowing purple line
+                                ctx.lineWidth = 1;
+                                ctx.stroke();
+                            }
+                        }
+                    }
+                    requestAnimationFrame(animate);
+                }
+                
+                animate();
+            }
         });
     </script>
 </body>
